@@ -68,6 +68,24 @@ class LogisticRegressionModel (
       case None => score
     }
   }
+
+  // DW:
+  def logisticLoss(labeledPoint: LabeledPoint, weightMatrix: Vector,
+    b: Double) : Double = {
+    val dotProd = weightMatrix.toBreeze.dot(labeledPoint.features.toBreeze) + b
+    math.log(1 + math.exp(-labeledPoint.label * dotProd))
+  }
+
+  // DW:
+  def logisticLoss(testData: RDD[LabeledPoint]) : RDD[Double] = {
+    val localWeights = weights
+    val bcWeights = testData.context.broadcast(localWeights)
+    val localIntercept = intercept
+    testData.mapPartitions { iter =>
+      val w = bcWeights.value
+      iter.map(v => logisticLoss(v, w, localIntercept))
+    }
+  }
 }
 
 /**
